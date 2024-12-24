@@ -6,8 +6,9 @@ use chia::protocol::Program;
 use chia::traits::Streamable;
 use clap::Args;
 use dg_xch_clients::api::full_node::FullnodeAPI;
-use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
-use recovery_tools::{decompress_gzip_to_bytes, filter_meta_end, filter_meta_start, is_meta};
+use recovery_tools::{
+    coin_id_from_string, decompress_gzip_to_bytes, filter_meta_end, filter_meta_start, is_meta,
+};
 use std::env;
 use tokio::fs;
 use tokio::fs::File;
@@ -29,14 +30,13 @@ impl RecoverMetadata {
         );
         let client = get_chia_client(8555);
 
-        let coinid = hex::decode(&self.coin)?;
-        let coinidb32 = Bytes32::new(&coinid);
+        let coinid = coin_id_from_string(&self.coin)?;
         let current_coin = client
-            .get_coin_record_by_name(&coinidb32)
+            .get_coin_record_by_name(&coinid)
             .await?
             .ok_or(anyhow!("No Coin Record found."))?;
         let puzz_solution = client
-            .get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index)
+            .get_puzzle_and_solution(&coinid, current_coin.spent_block_index)
             .await?;
 
         let solution = puzz_solution.solution.clone();

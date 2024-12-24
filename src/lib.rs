@@ -1,4 +1,6 @@
+use anyhow::Result;
 use chia::protocol::Bytes;
+use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
 use flate2::read::GzDecoder;
 use std::io::Read;
 use std::str::from_utf8;
@@ -119,4 +121,14 @@ pub fn decompress_gzip_to_bytes(compressed: &Bytes) -> Result<Bytes, std::io::Er
 
     // Convert the uncompressed data into Bytes and return it
     Ok(Bytes::from(decompressed_data))
+}
+
+pub fn coin_id_from_string(coin_id_str: &str) -> Result<Bytes32> {
+    let stripped_coin_id_str = if coin_id_str.to_lowercase().starts_with("0x") {
+        &coin_id_str[2..]
+    } else {
+        coin_id_str
+    };
+    let coinid = hex::decode(&stripped_coin_id_str)?;
+    Ok(Bytes32::new(&coinid))
 }

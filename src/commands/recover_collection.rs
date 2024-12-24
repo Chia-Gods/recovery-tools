@@ -7,8 +7,7 @@ use chia::traits::Streamable;
 use clap::Args;
 use dg_xch_clients::api::full_node::FullnodeAPI;
 use dg_xch_core::blockchain::coin::Coin;
-use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
-use recovery_tools::{is_collection_end, is_collection_start};
+use recovery_tools::{coin_id_from_string, is_collection_end, is_collection_start};
 use std::env;
 use tokio::fs;
 use tokio::fs::OpenOptions;
@@ -31,14 +30,13 @@ impl RecoverCollection {
         let outputdir = cwd.join("output-images");
         fs::create_dir_all(&outputdir).await?;
 
-        let coinid = hex::decode(&self.coin)?;
-        let coinidb32 = Bytes32::new(&coinid);
+        let coinid = coin_id_from_string(&self.coin)?;
         let mut current_coin = client
-            .get_coin_record_by_name(&coinidb32)
+            .get_coin_record_by_name(&coinid)
             .await?
             .ok_or(anyhow!("No Coin Record found."))?;
         let mut puzz_solution = client
-            .get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index)
+            .get_puzzle_and_solution(&coinid, current_coin.spent_block_index)
             .await?;
 
         let mut found_collection_start = false;
