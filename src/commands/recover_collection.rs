@@ -1,3 +1,4 @@
+use anyhow::{Result};
 use clap::Args;
 
 #[derive(Args)]
@@ -9,8 +10,9 @@ pub struct RecoverCollection {
 }
 
 impl RecoverCollection {
-    pub fn execute(&self) {
+    pub async fn execute(&self) -> Result<()> {
         println!("Recovering collection from coin: {}", self.coin);
 
+        anyhow::Ok(())
     }
 }

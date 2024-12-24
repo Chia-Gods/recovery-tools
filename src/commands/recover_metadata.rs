@@ -9,8 +9,9 @@ pub struct RecoverMetadata {
 }
 
 impl RecoverMetadata {
-    pub fn execute(&self) {
+    pub async fn execute(&self) -> anyhow::Result<()> {
         println!("Recovering metadata for collection from coin: {}", self.coin);
 
+        anyhow::Ok(())
     }
 }

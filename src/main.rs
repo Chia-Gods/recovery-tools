@@ -1,6 +1,8 @@
+use anyhow::Result;
 use clap::Parser;
 
 mod commands;
+mod chia;
 
 #[derive(Parser)]
 #[command(name = "Chia Gods Recovery Tools")]
@@ -13,12 +15,13 @@ enum Cli {
     RecoverMetadata(commands::recover_metadata::RecoverMetadata),
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli {
-        Cli::RecoverImage(cmd) => cmd.execute(),
-        Cli::RecoverCollection(cmd) => cmd.execute(),
-        Cli::RecoverMetadata(cmd) => cmd.execute(),
+        Cli::RecoverImage(cmd) => cmd.execute().await,
+        Cli::RecoverCollection(cmd) => cmd.execute().await,
+        Cli::RecoverMetadata(cmd) => cmd.execute().await,
     }
 }
