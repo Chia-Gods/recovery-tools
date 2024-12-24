@@ -1,0 +1,8 @@
+[package]
+name = "recovery-tools"
+version = "0.1.0"
+authors = ["Chris Marslender", "Patrick Maslana"]
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
