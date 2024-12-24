@@ -64,7 +64,7 @@ impl RecoverMetadata {
 
         // Iterate over each item in the array and write to a separate JSON file
         for (index, item) in all_meta.iter().enumerate() {
-            let output_file = outputdir.join(format!("item_{}.json", index + 1));
+            let output_file = outputdir.join(format!("metadata_{:03}.json", index + 1));
             let mut file = File::create(output_file).await?;
 
             // Check if the item is a string
