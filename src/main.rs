@@ -1,8 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 
-mod commands;
 mod chia;
+mod commands;
 
 #[derive(Parser)]
 #[command(name = "Chia Gods Recovery Tools")]

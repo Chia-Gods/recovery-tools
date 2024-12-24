@@ -1,17 +1,17 @@
-use std::env;
-use anyhow::{anyhow};
-use chia::protocol::{Program};
+use crate::chia::client::get_chia_client;
+use crate::chia::memo::parse_memos;
+use anyhow::anyhow;
+use base64::{engine::general_purpose, Engine};
+use chia::protocol::Program;
 use chia::traits::Streamable;
 use clap::Args;
 use dg_xch_clients::api::full_node::FullnodeAPI;
 use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
-use tokio::fs;
-use tokio::fs::{File};
-use tokio::io::AsyncWriteExt;
 use recovery_tools::{decompress_gzip_to_bytes, filter_meta_end, filter_meta_start, is_meta};
-use crate::chia::client::get_chia_client;
-use crate::chia::memo::parse_memos;
-use base64::{engine::general_purpose, Engine};
+use std::env;
+use tokio::fs;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 #[derive(Args)]
 #[command(about = "Recover metadata for the collection")]
@@ -23,13 +23,21 @@ pub struct RecoverMetadata {
 
 impl RecoverMetadata {
     pub async fn execute(&self) -> anyhow::Result<()> {
-        println!("Recovering metadata for collection from coin: {}", self.coin);
+        println!(
+            "Recovering metadata for collection from coin: {}",
+            self.coin
+        );
         let client = get_chia_client(8555);
 
         let coinid = hex::decode(&self.coin)?;
         let coinidb32 = Bytes32::new(&coinid);
-        let current_coin = client.get_coin_record_by_name(&coinidb32).await?.ok_or(anyhow!("No Coin Record found."))?;
-        let puzz_solution = client.get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index).await?;
+        let current_coin = client
+            .get_coin_record_by_name(&coinidb32)
+            .await?
+            .ok_or(anyhow!("No Coin Record found."))?;
+        let puzz_solution = client
+            .get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index)
+            .await?;
 
         let solution = puzz_solution.solution.clone();
         let puzzle = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
@@ -56,7 +64,7 @@ impl RecoverMetadata {
 
         // Iterate over each item in the array and write to a separate JSON file
         for (index, item) in all_meta.iter().enumerate() {
-            let output_file = outputdir.join(format!("item_{}.json", index+1));
+            let output_file = outputdir.join(format!("item_{}.json", index + 1));
             let mut file = File::create(output_file).await?;
 
             // Check if the item is a string

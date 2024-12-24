@@ -1,4 +1,5 @@
-use anyhow::{anyhow, Result, Ok};
+use crate::chia::memo::parse_memos;
+use anyhow::{anyhow, Ok, Result};
 use chia::protocol::{Bytes, Program};
 use chia::traits::Streamable;
 use dg_xch_clients::api::full_node::FullnodeAPI;
@@ -6,8 +7,10 @@ use dg_xch_clients::rpc::full_node::FullnodeClient;
 use dg_xch_core::blockchain::coin::Coin;
 use dg_xch_core::blockchain::coin_record::CoinRecord;
 use dg_xch_core::blockchain::coin_spend::CoinSpend;
-use recovery_tools::{filter_collection_end, filter_collection_start, filter_png_end, filter_png_start, get_filename, is_png_end, is_png_start};
-use crate::chia::memo::parse_memos;
+use recovery_tools::{
+    filter_collection_end, filter_collection_start, filter_png_end, filter_png_start, get_filename,
+    is_png_end, is_png_start,
+};
 
 pub struct ImageData {
     pub data: Vec<u8>,
@@ -16,7 +19,11 @@ pub struct ImageData {
     pub last_memo: Bytes,
 }
 
-pub async fn get_image(client: &FullnodeClient, initial_coin: &CoinRecord, initial_puzzle_solution: &CoinSpend) -> Result<ImageData> {
+pub async fn get_image(
+    client: &FullnodeClient,
+    initial_coin: &CoinRecord,
+    initial_puzzle_solution: &CoinSpend,
+) -> Result<ImageData> {
     let mut current_coin = initial_coin.clone();
     let mut puzz_solution = initial_puzzle_solution.clone();
 
@@ -54,17 +61,22 @@ pub async fn get_image(client: &FullnodeClient, initial_coin: &CoinRecord, initi
             });
         }
 
-        let child_coin = Coin{
+        let child_coin = Coin {
             parent_coin_info: current_coin.coin.coin_id().clone(),
             puzzle_hash: current_coin.coin.puzzle_hash.clone(),
             amount: current_coin.coin.amount.clone(),
         };
-        current_coin = client.get_coin_record_by_name(&child_coin.name()).await?.ok_or(anyhow!("Unable to get child coin"))?;
+        current_coin = client
+            .get_coin_record_by_name(&child_coin.name())
+            .await?
+            .ok_or(anyhow!("Unable to get child coin"))?;
         if current_coin.spent_block_index == 0 {
             anyhow::bail!("No more data available on chain, but did not reach end of the image!");
         }
 
-        puzz_solution = client.get_puzzle_and_solution(&child_coin.name(), current_coin.spent_block_index).await?;
+        puzz_solution = client
+            .get_puzzle_and_solution(&child_coin.name(), current_coin.spent_block_index)
+            .await?;
     }
 
     anyhow::bail!("No image found");

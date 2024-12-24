@@ -1,4 +1,6 @@
-use std::env;
+use crate::chia::client::get_chia_client;
+use crate::chia::image::get_image;
+use crate::chia::memo::parse_memos;
 use anyhow::{anyhow, Result};
 use chia::protocol::Program;
 use chia::traits::Streamable;
@@ -6,13 +8,11 @@ use clap::Args;
 use dg_xch_clients::api::full_node::FullnodeAPI;
 use dg_xch_core::blockchain::coin::Coin;
 use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
+use recovery_tools::{is_collection_end, is_collection_start};
+use std::env;
 use tokio::fs;
 use tokio::fs::OpenOptions;
 use tokio::io::AsyncWriteExt;
-use recovery_tools::{is_collection_end, is_collection_start};
-use crate::chia::client::get_chia_client;
-use crate::chia::image::get_image;
-use crate::chia::memo::parse_memos;
 
 #[derive(Args)]
 #[command(about = "Recover a collection of images")]
@@ -33,9 +33,13 @@ impl RecoverCollection {
 
         let coinid = hex::decode(&self.coin)?;
         let coinidb32 = Bytes32::new(&coinid);
-        let mut current_coin = client.get_coin_record_by_name(&coinidb32).await?.ok_or(anyhow!("No Coin Record found."))?;
-        let mut puzz_solution = client.get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index).await?;
-
+        let mut current_coin = client
+            .get_coin_record_by_name(&coinidb32)
+            .await?
+            .ok_or(anyhow!("No Coin Record found."))?;
+        let mut puzz_solution = client
+            .get_puzzle_and_solution(&coinidb32, current_coin.spent_block_index)
+            .await?;
 
         let mut found_collection_start = false;
         let mut current_image_counter = 1;
@@ -52,13 +56,16 @@ impl RecoverCollection {
             found_collection_start = true;
 
             let image_result = get_image(&client, &current_coin, &puzz_solution).await?;
-            let final_filename = image_result.filename.unwrap_or(format!("{}-{}.png", current_image_counter, self.coin));
+            let final_filename = image_result
+                .filename
+                .unwrap_or(format!("{}-{}.png", current_image_counter, self.coin));
             let output_file_name = outputdir.join(&final_filename);
             let mut file = OpenOptions::new()
-                .write(true)  // Open the file for writing
+                .write(true) // Open the file for writing
                 .create(true) // Create the file if it does not exist
-                .truncate(true)// Overwrite any existing content
-                .open(&output_file_name).await?;
+                .truncate(true) // Overwrite any existing content
+                .open(&output_file_name)
+                .await?;
             file.write_all(&image_result.data).await?;
             println!("Wrote {}", &final_filename);
 
@@ -66,17 +73,22 @@ impl RecoverCollection {
                 println!("Reached end of collection!");
                 return Ok(());
             }
-            let child_coin = Coin{
+            let child_coin = Coin {
                 parent_coin_info: image_result.last_coin.coin.coin_id().clone(),
                 puzzle_hash: image_result.last_coin.coin.puzzle_hash.clone(),
                 amount: image_result.last_coin.coin.amount.clone(),
             };
-            current_coin = client.get_coin_record_by_name(&child_coin.name()).await?.unwrap();
+            current_coin = client
+                .get_coin_record_by_name(&child_coin.name())
+                .await?
+                .unwrap();
             if current_coin.spent_block_index == 0 {
                 println!("No more data available on chain, but did not reach end of collection!");
                 return Ok(());
             }
-            puzz_solution = client.get_puzzle_and_solution(&child_coin.name(), current_coin.spent_block_index).await?;
+            puzz_solution = client
+                .get_puzzle_and_solution(&child_coin.name(), current_coin.spent_block_index)
+                .await?;
             current_image_counter += 1;
         }
 

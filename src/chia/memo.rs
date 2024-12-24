@@ -4,7 +4,10 @@ use chia::protocol::{Bytes, Program};
 use chia_wallet_sdk::{run_puzzle, Condition};
 use clvmr::Allocator;
 
-pub fn parse_memos(solution_program: Program, reveal_program: Program) -> anyhow::Result<Option<Bytes>> {
+pub fn parse_memos(
+    solution_program: Program,
+    reveal_program: Program,
+) -> anyhow::Result<Option<Bytes>> {
     let mut allocator = Allocator::new();
     let puzzle = reveal_program.to_clvm(&mut allocator)?;
     let solution = solution_program.to_clvm(&mut allocator)?;
