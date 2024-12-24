@@ -2505,6 +2505,7 @@ name = "recovery-tools"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.21.7",
  "chia",
  "chia-wallet-sdk",
  "clap",
@@ -2512,7 +2513,10 @@ dependencies = [
  "dg_xch_clients",
  "dg_xch_core",
  "dirs-next",
+ "flate2",
  "hex",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

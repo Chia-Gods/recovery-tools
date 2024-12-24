@@ -1,7 +1,9 @@
+use std::io::Read;
 use std::str::from_utf8;
 use chia::{
     protocol::{Bytes},
 };
+use flate2::read::GzDecoder;
 
 pub const PNG_START: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 const I_END_CHUNK: [u8; 12] = [0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82];
@@ -72,6 +74,24 @@ pub fn filter_collection_end(memo: &Bytes) -> Bytes {
     memo.clone()
 }
 
+pub fn filter_meta_start(memo: &Bytes) -> Bytes {
+    // If we encounter START_META we should also strip everything else before it
+    if let Some((_start,end)) = bytes_contains(&memo, &START_META[..]) {
+        return Bytes::new(memo[end..].to_vec());
+    }
+
+    memo.clone()
+}
+
+pub fn filter_meta_end(memo: &Bytes) -> Bytes {
+    // If we encounter END_META we should also strip everything else before it
+    if let Some((start,_end)) = bytes_contains(&memo, &END_META[..]) {
+        return Bytes::new(memo[..start].to_vec());
+    }
+
+    memo.clone()
+}
+
 pub fn get_filename(memo: &Bytes) -> Option<String> {
     // if the filename exists, it exists after I_END_CHUNK
     // If the collection end marker also exists, it will be immediately after filename
@@ -84,4 +104,18 @@ pub fn get_filename(memo: &Bytes) -> Option<String> {
     }
 
     None
+}
+
+pub fn decompress_gzip_to_bytes(compressed: &Bytes) -> Result<Bytes, std::io::Error> {
+    // Create a GzDecoder to decompress the data
+    let mut decoder = GzDecoder::new(&compressed[..]);
+
+    // Buffer to hold the decompressed data
+    let mut decompressed_data = Vec::new();
+
+    // Decompress the data
+    decoder.read_to_end(&mut decompressed_data)?;
+
+    // Convert the uncompressed data into Bytes and return it
+    Ok(Bytes::from(decompressed_data))
 }
