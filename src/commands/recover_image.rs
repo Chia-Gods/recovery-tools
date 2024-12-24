@@ -31,16 +31,16 @@ impl RecoverImage {
         let outputdir = cwd.join("output-images");
         fs::create_dir_all(&outputdir).await?;
 
-        let (image_data, filename) = get_image(client, current_coin, puzz_solution).await?;
-
-        let final_filename = filename.unwrap_or(format!("{}.png", self.coin));
-        let output_file_name = outputdir.join(final_filename);
+        let image_result = get_image(&client, &current_coin, &puzz_solution).await?;
+        let final_filename = image_result.filename.unwrap_or(format!("{}.png", self.coin));
+        let output_file_name = outputdir.join(&final_filename);
         let mut file = OpenOptions::new()
             .write(true)  // Open the file for writing
             .create(true) // Create the file if it does not exist
             .truncate(true)// Overwrite any existing content
             .open(&output_file_name).await?;
-        file.write_all(&image_data).await?;
+        file.write_all(&image_result.data).await?;
+        println!("Wrote {}", &final_filename);
 
         anyhow::Ok(())
     }

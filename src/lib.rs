@@ -32,6 +32,10 @@ pub fn is_collection_start(memo: &Bytes) -> bool {
     bytes_contains(&memo, &START_COLLECTION[..]).is_some()
 }
 
+pub fn is_collection_end(memo: &Bytes) -> bool {
+    bytes_contains(&memo, &END_COLLECTION[..]).is_some()
+}
+
 pub fn filter_png_start(memo: &Bytes) -> Bytes {
     // If we encounter PNG_START we should also strip everything else before it
     if let Some((start,_end)) = bytes_contains(&memo, &PNG_START[..]) {

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result, Ok};
-use chia::protocol::{Program};
+use chia::protocol::{Bytes, Program};
 use chia::traits::Streamable;
 use dg_xch_clients::api::full_node::FullnodeAPI;
 use dg_xch_clients::rpc::full_node::FullnodeClient;
@@ -9,7 +9,14 @@ use dg_xch_core::blockchain::coin_spend::CoinSpend;
 use recovery_tools::{filter_collection_end, filter_collection_start, filter_png_end, filter_png_start, get_filename, is_png_end, is_png_start};
 use crate::chia::memo::parse_memos;
 
-pub async fn get_image(client: FullnodeClient, initial_coin: CoinRecord, initial_puzzle_solution: CoinSpend) -> Result<(Vec<u8>, Option<String>)> {
+pub struct ImageData {
+    pub data: Vec<u8>,
+    pub filename: Option<String>,
+    pub last_coin: CoinRecord,
+    pub last_memo: Bytes,
+}
+
+pub async fn get_image(client: &FullnodeClient, initial_coin: &CoinRecord, initial_puzzle_solution: &CoinSpend) -> Result<ImageData> {
     let mut current_coin = initial_coin.clone();
     let mut puzz_solution = initial_puzzle_solution.clone();
 
@@ -21,11 +28,11 @@ pub async fn get_image(client: FullnodeClient, initial_coin: CoinRecord, initial
         let puzzle = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
         let solution_program = Program::from_bytes(&solution.to_bytes())?;
         let mut memo = parse_memos(solution_program, puzzle)?.unwrap();
+        let original_memo = memo.clone();
         if !found_start && !is_png_start(&memo) {
             anyhow::bail!("Not the start of an image");
         }
         found_start = true;
-        println!("Found start of image, reassembling...");
 
         // Check for the filename before we strip it out of the memo
         let file_name = get_filename(&memo);
@@ -39,8 +46,12 @@ pub async fn get_image(client: FullnodeClient, initial_coin: CoinRecord, initial
         final_image.extend(memo.as_ref());
 
         if is_png_end(&memo) {
-            println!("Found end of image!");
-            return Ok((final_image, file_name));
+            return Ok(ImageData {
+                data: final_image,
+                filename: file_name,
+                last_coin: current_coin,
+                last_memo: original_memo,
+            });
         }
 
         let child_coin = Coin{
