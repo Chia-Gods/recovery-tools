@@ -69,12 +69,10 @@ pub fn filter_collection_end(memo: &Bytes) -> Bytes {
 }
 
 pub fn get_filename(memo: &Bytes) -> Option<String> {
-    let mut working_memo = memo.clone();
-
     // if the filename exists, it exists after I_END_CHUNK
     // If the collection end marker also exists, it will be immediately after filename
     // First, we can just strip out the collection end
-    working_memo = filter_collection_end(memo);
+    let working_memo = filter_collection_end(memo);
     if let Some((_start,end)) = bytes_contains(&working_memo, &I_END_CHUNK[..]) {
         if let Ok(stringfile) = from_utf8(&working_memo[end..]) {
             return Some(String::from(stringfile));
