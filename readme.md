@@ -9,9 +9,16 @@ These tools can be used to recover Chia Gods NFT images and metadata from your o
 
 ## Usage
 
-There are currently three functions of the tool: `recover-metadata`, `recover-image`, and `recover-collection`.
+There are currently four functions of the tool: `locate-nft-data`, `recover-metadata`, `recover-image`, and `recover-collection`.
 
 The first time you run any of the commands may take a while, since it will first need to compile the application.
+
+### Locate NFT Data
+
+The `locate-nft-data` command accepts any NFT ID from the collection and will trace through the parent coins on chain to locate the metadata coin ID and the image coin IDs.
+The output of this command can be used in the other commands to restore an image, the full collection, and the metadata files.
+
+`cargo run -- locate-nft-data --nft-id nft1r8cx3ykw4r8x6wkaehd5ye26xfdhzlk7fswz8ctgvc5sj9al3scslv03v6`
 
 ### Recover Metadata
 

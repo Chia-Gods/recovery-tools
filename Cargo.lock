@@ -229,6 +229,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
 
 [[package]]
+name = "bech32"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d965446196e3b7decd44aa7ee49e31d630118f90ef12f97900f262eb915c951d"
+
+[[package]]
 name = "bigdecimal"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -551,7 +557,7 @@ version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ab6d90f57f293de8cd53cd07e731590b10735d5315dd9ad4f1c8b413a32c4e7"
 dependencies = [
- "bech32",
+ "bech32 0.9.1",
  "chia-bls 0.15.0",
  "chia-protocol",
  "chia-puzzles",
@@ -637,7 +643,7 @@ version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b106677ace45dab97a3b860bb02e5172ebbd1338175664400d1fa7d8b17ec2c2"
 dependencies = [
- "bech32",
+ "bech32 0.9.1",
  "chia-protocol",
  "hex",
  "indexmap",
@@ -1078,7 +1084,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "189b5d6015d0674139b38ed51b048e004c4ad9e8032e099640e695abf1474118"
 dependencies = [
  "async-trait",
- "bech32",
+ "bech32 0.9.1",
  "bip39",
  "bls12_381",
  "blst",
@@ -1119,7 +1125,7 @@ version = "2.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f5a923f37262c28256fa770ff8ade3e6f966c46daa383070dd80e8cc01918fa"
 dependencies = [
- "bech32",
+ "bech32 0.9.1",
  "bip39",
  "blst",
  "dg_xch_core",
@@ -2506,6 +2512,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
+ "bech32 0.11.0",
  "chia",
  "chia-wallet-sdk",
  "clap",
