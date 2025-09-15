@@ -18,11 +18,12 @@ pub struct RecoverImage {
 }
 
 impl RecoverImage {
-    pub async fn execute(&self) -> Result<()> {
-        println!("Recovering image from coin: {}", &self.coin);
-        let client = get_chia_client(8555);
+    pub async fn execute(&self, port: u16) -> Result<()> {
+        let Self { coin } = self;
+        println!("Recovering image from coin: {coin}");
+        let client = get_chia_client(port);
 
-        let coinid = coin_id_from_string(&self.coin)?;
+        let coinid = coin_id_from_string(coin)?;
         let current_coin = client
             .get_coin_record_by_name(&coinid)
             .await?
@@ -38,7 +39,7 @@ impl RecoverImage {
         let image_result = get_image(&client, &current_coin, &puzz_solution).await?;
         let final_filename = image_result
             .filename
-            .unwrap_or(format!("{}.png", self.coin));
+            .unwrap_or(format!("{coin}.png"));
         let output_file_name = outputdir.join(&final_filename);
         let mut file = OpenOptions::new()
             .write(true) // Open the file for writing

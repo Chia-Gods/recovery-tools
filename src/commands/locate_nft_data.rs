@@ -20,9 +20,9 @@ pub struct LocateNFTData {
 }
 
 impl LocateNFTData {
-    pub async fn execute(&self) -> Result<()> {
+    pub async fn execute(&self, port: u16) -> Result<()> {
         println!("Locating NFT data for: {}", self.nft_id);
-        let client = get_chia_client(8555);
+        let client = get_chia_client(port);
 
         let (_hrp, launcher_id) = bech32::decode(&self.nft_id)?;
         let coinid = Bytes32::new(&launcher_id[..]);

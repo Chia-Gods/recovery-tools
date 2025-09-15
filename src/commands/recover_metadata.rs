@@ -23,12 +23,12 @@ pub struct RecoverMetadata {
 }
 
 impl RecoverMetadata {
-    pub async fn execute(&self) -> anyhow::Result<()> {
+    pub async fn execute(&self, port: u16) -> anyhow::Result<()> {
         println!(
             "Recovering metadata for collection from coin: {}",
             self.coin
         );
-        let client = get_chia_client(8555);
+        let client = get_chia_client(port);
 
         let coinid = coin_id_from_string(&self.coin)?;
         let current_coin = client

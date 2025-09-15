@@ -22,9 +22,9 @@ pub struct RecoverCollection {
 }
 
 impl RecoverCollection {
-    pub async fn execute(&self) -> Result<()> {
+    pub async fn execute(&self, port: u16) -> Result<()> {
         println!("Recovering collection from coin: {}", self.coin);
-        let client = get_chia_client(8555);
+        let client = get_chia_client(port);
 
         let cwd = env::current_dir()?;
         let outputdir = cwd.join("output-images");
