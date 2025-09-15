@@ -29,12 +29,12 @@ impl LocateNFTData {
         let launcher_coin = client
             .get_coin_record_by_name(&coinid)
             .await?
-            .ok_or(anyhow!("Launcher Coin Record found."))?;
+            .ok_or(anyhow!("Launcher Coin Record not found."))?;
 
         let eph_coin = client
             .get_coin_record_by_name(&launcher_coin.coin.parent_coin_info)
             .await?
-            .ok_or(anyhow!("Ephemeral Coin Record found."))?;
+            .ok_or(anyhow!("Ephemeral Coin Record not found."))?;
 
         let direct_parent = client
             .get_coin_record_by_name(&eph_coin.coin.parent_coin_info)
