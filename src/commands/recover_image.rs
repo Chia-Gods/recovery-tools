@@ -37,9 +37,7 @@ impl RecoverImage {
         fs::create_dir_all(&outputdir).await?;
 
         let image_result = get_image(&client, &current_coin, &puzz_solution).await?;
-        let final_filename = image_result
-            .filename
-            .unwrap_or(format!("{coin}.png"));
+        let final_filename = image_result.filename.unwrap_or(format!("{coin}.png"));
         let output_file_name = outputdir.join(&final_filename);
         let mut file = OpenOptions::new()
             .write(true) // Open the file for writing
