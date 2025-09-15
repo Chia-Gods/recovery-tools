@@ -46,7 +46,7 @@ impl RecoverCollection {
             let solution = puzz_solution.solution.clone();
             let puzzle = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
             let solution_program = Program::from_bytes(&solution.to_bytes())?;
-            let memo = parse_memos(solution_program, puzzle)?.unwrap();
+            let memo = parse_memos(&solution_program, &puzzle)?.unwrap();
 
             if !found_collection_start && !is_collection_start(&memo) {
                 anyhow::bail!("Not the start of a collection");
@@ -72,9 +72,9 @@ impl RecoverCollection {
                 return Ok(());
             }
             let child_coin = Coin {
-                parent_coin_info: image_result.last_coin.coin.coin_id().clone(),
-                puzzle_hash: image_result.last_coin.coin.puzzle_hash.clone(),
-                amount: image_result.last_coin.coin.amount.clone(),
+                parent_coin_info: image_result.last_coin.coin.coin_id(),
+                puzzle_hash: image_result.last_coin.coin.puzzle_hash,
+                amount: image_result.last_coin.coin.amount,
             };
             current_coin = client
                 .get_coin_record_by_name(&child_coin.name())

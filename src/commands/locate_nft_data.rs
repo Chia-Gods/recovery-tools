@@ -48,13 +48,13 @@ impl LocateNFTData {
         // Now, we need to find the CREATE_COIN_ANNOUNCEMENT
         let create_coin_announcements = conditions
             .into_iter()
-            .flat_map(Condition::into_create_coin_announcement);
+            .filter_map(Condition::into_create_coin_announcement);
 
         let mut input_coins: Vec<CoinRecord> = vec![];
 
         for announcement in create_coin_announcements {
             let mut hasher = Sha256::new();
-            hasher.update(&eph_coin.coin.parent_coin_info);
+            hasher.update(eph_coin.coin.parent_coin_info);
             hasher.update(&announcement.message);
             let message = hasher.finalize().to_vec();
 
@@ -70,10 +70,10 @@ impl LocateNFTData {
                 let conditions = conditions_for_coin(&client, &removal).await?;
                 let assert_coin_announcements = conditions
                     .into_iter()
-                    .flat_map(Condition::into_assert_coin_announcement);
+                    .filter_map(Condition::into_assert_coin_announcement);
                 for assert_coin_announcement in assert_coin_announcements {
                     if assert_coin_announcement.announcement_id[..] == message {
-                        input_coins.push(removal.clone())
+                        input_coins.push(removal.clone());
                     }
                 }
             }
@@ -104,7 +104,7 @@ impl LocateNFTData {
             // Then the "Start Collection" image
 
             let conditions = conditions_for_coin(&client, &current_coin).await?;
-            let memo_opt = parse_memos_from_conditions(conditions)?;
+            let memo_opt = parse_memos_from_conditions(conditions);
             if memo_opt.is_none() {
                 if found_gap {
                     // If we found the gap and have no memo before the collection is done, that is not expected
@@ -126,7 +126,7 @@ impl LocateNFTData {
 
             if !found_meta {
                 if !is_meta(&memo) {
-                    println!("{}", memo);
+                    println!("{memo}");
                     anyhow::bail!("Did not find the metadata at the expected location");
                 }
                 found_meta = true;
@@ -157,7 +157,6 @@ impl LocateNFTData {
             }
 
             current_coin = advance_parent(&client, &current_coin).await?;
-            continue;
         }
 
         anyhow::Ok(())

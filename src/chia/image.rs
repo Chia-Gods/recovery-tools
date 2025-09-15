@@ -34,7 +34,7 @@ pub async fn get_image(
         let solution = puzz_solution.solution.clone();
         let puzzle = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
         let solution_program = Program::from_bytes(&solution.to_bytes())?;
-        let mut memo = parse_memos(solution_program, puzzle)?.unwrap();
+        let mut memo = parse_memos(&solution_program, &puzzle)?.unwrap();
         let original_memo = memo.clone();
         if !found_start && !is_png_start(&memo) {
             anyhow::bail!("Not the start of an image");
@@ -62,9 +62,9 @@ pub async fn get_image(
         }
 
         let child_coin = Coin {
-            parent_coin_info: current_coin.coin.coin_id().clone(),
-            puzzle_hash: current_coin.coin.puzzle_hash.clone(),
-            amount: current_coin.coin.amount.clone(),
+            parent_coin_info: current_coin.coin.coin_id(),
+            puzzle_hash: current_coin.coin.puzzle_hash,
+            amount: current_coin.coin.amount,
         };
         current_coin = client
             .get_coin_record_by_name(&child_coin.name())

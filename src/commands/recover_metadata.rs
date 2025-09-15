@@ -42,7 +42,7 @@ impl RecoverMetadata {
         let solution = puzz_solution.solution.clone();
         let puzzle = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
         let solution_program = Program::from_bytes(&solution.to_bytes())?;
-        let mut memo = parse_memos(solution_program, puzzle)?.unwrap();
+        let mut memo = parse_memos(&solution_program, &puzzle)?.unwrap();
 
         if !is_meta(&memo) {
             anyhow::bail!("Not a metadata coin")

@@ -20,12 +20,12 @@ pub async fn conditions_for_coin(
     let puzzle_program = Program::from_bytes(&puzz_solution.puzzle_reveal.to_bytes())?;
     let solution_program = Program::from_bytes(&solution.to_bytes())?;
 
-    conditions_for_puzz_solution(solution_program, puzzle_program)
+    conditions_for_puzz_solution(&solution_program, &puzzle_program)
 }
 
 pub fn conditions_for_puzz_solution(
-    solution_program: Program,
-    reveal_program: Program,
+    solution_program: &Program,
+    reveal_program: &Program,
 ) -> Result<Vec<Condition>> {
     let mut allocator = Allocator::new();
     let puzzle = reveal_program.to_clvm(&mut allocator)?;
