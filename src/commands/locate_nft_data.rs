@@ -1,3 +1,4 @@
+use std::time::Duration;
 use crate::chia::client::get_chia_client;
 use crate::chia::coins::conditions_for_coin;
 use crate::chia::memo::parse_memos_from_conditions;
@@ -9,6 +10,7 @@ use dg_xch_clients::api::full_node::FullnodeAPI;
 use dg_xch_clients::rpc::full_node::FullnodeClient;
 use dg_xch_core::blockchain::coin_record::CoinRecord;
 use dg_xch_core::blockchain::sized_bytes::{Bytes32, SizedBytes};
+use tokio::time::sleep;
 use recovery_tools::{is_collection_end, is_collection_start, is_meta, is_png_start};
 
 #[derive(Args)]
@@ -24,67 +26,11 @@ impl LocateNFTData {
         println!("Locating NFT data for: {}", self.nft_id);
         let client = get_chia_client(port);
 
-        let (_hrp, launcher_id) = bech32::decode(&self.nft_id)?;
-        let coinid = Bytes32::new(&launcher_id[..]);
-        let launcher_coin = client
-            .get_coin_record_by_name(&coinid)
-            .await?
-            .ok_or(anyhow!("Launcher Coin Record not found."))?;
-
-        let eph_coin = client
-            .get_coin_record_by_name(&launcher_coin.coin.parent_coin_info)
-            .await?
-            .ok_or(anyhow!("Ephemeral Coin Record not found."))?;
-
-        let direct_parent = client
-            .get_coin_record_by_name(&eph_coin.coin.parent_coin_info)
-            .await?
-            .ok_or(anyhow!("Parent of ephemeral not found"))?;
-
-        // Now, the conditions on the spend of the direct parent should enable us to find the other parent of the ephemeral coin
-        // linked by CREATE_COIN_ANNOUNCEMENT/ASSERT_COIN_ANNOUNCEMENT
-        let conditions = conditions_for_coin(&client, &direct_parent).await?;
-
-        // Now, we need to find the CREATE_COIN_ANNOUNCEMENT
-        let create_coin_announcements = conditions
-            .into_iter()
-            .filter_map(Condition::into_create_coin_announcement);
-
-        let mut input_coins: Vec<CoinRecord> = vec![];
-
-        for announcement in create_coin_announcements {
-            let mut hasher = Sha256::new();
-            hasher.update(eph_coin.coin.parent_coin_info);
-            hasher.update(&announcement.message);
-            let message = hasher.finalize().to_vec();
-
-            // now we have to find coins with ASSERT_COIN_ANNOUNCEMENT of `message`
-            // Get all the coin creations in the block, and find the matching assert
-            let block = client
-                .get_block_record_by_height(eph_coin.confirmed_block_index)
-                .await?;
-            let (_additions, removals) = client
-                .get_additions_and_removals(&block.header_hash)
-                .await?;
-            for removal in removals {
-                let conditions = conditions_for_coin(&client, &removal).await?;
-                let assert_coin_announcements = conditions
-                    .into_iter()
-                    .filter_map(Condition::into_assert_coin_announcement);
-                for assert_coin_announcement in assert_coin_announcements {
-                    if assert_coin_announcement.announcement_id[..] == message {
-                        input_coins.push(removal.clone());
-                    }
-                }
-            }
-        }
-
-        if input_coins.len() != 1 {
-            anyhow::bail!("Unexpected number of input coins found");
-        }
-
-        // At this point, we found the parent of the NFT that directly leads back to the metadata (without tracing asserts)
-        let mut current_coin = input_coins.pop().ok_or(anyhow!("Missing input coin"))?;
+        let mut current_coin = get_nft_parent_in_direct_chain(&client, &self.nft_id).await?;
+        println!(
+            "NFT Parent with parent traceability: {}",
+            current_coin.coin.name()
+        );
 
         let mut found_gap = false; // 🏴‍☠️ 💰 🗺️ 💎 🏆 🎁 📜
         let mut found_meta = false;
@@ -118,7 +64,10 @@ impl LocateNFTData {
             if !found_gap {
                 if memo.len() != 32 {
                     found_gap = true;
-                    println!("Found a spend before the NFT mints with a memo that isn't the metadata, but something seems to be here. Continuing to parent coin...");
+                    println!("Found a spend before the NFT mints with a memo that isn't the metadata, but something seems to be here 🏴‍☠️ 💰 🗺️ 💎 🏆 🎁 📜:");
+                    let base64_str = str::from_utf8(&memo)?;
+                    println!("{base64_str}");
+                    sleep(Duration::from_secs(5)).await;
                 }
                 current_coin = advance_parent(&client, &current_coin).await?;
                 continue;
@@ -161,6 +110,75 @@ impl LocateNFTData {
 
         anyhow::Ok(())
     }
+}
+
+/// Finds the parent coin of the NFT that is in the direct lineage back to the metadata/image coins
+/// Once this coin is found, all that needs to happen is looking at parent_coin_id all the way up
+async fn get_nft_parent_in_direct_chain(
+    client: &FullnodeClient,
+    nft_id: &str,
+) -> Result<CoinRecord> {
+    let (_hrp, launcher_id) = bech32::decode(nft_id)?;
+    let coinid = Bytes32::new(&launcher_id[..]);
+    let launcher_coin = client
+        .get_coin_record_by_name(&coinid)
+        .await?
+        .ok_or(anyhow!("Launcher Coin Record not found."))?;
+
+    let eph_coin = client
+        .get_coin_record_by_name(&launcher_coin.coin.parent_coin_info)
+        .await?
+        .ok_or(anyhow!("Ephemeral Coin Record not found."))?;
+
+    let direct_parent = client
+        .get_coin_record_by_name(&eph_coin.coin.parent_coin_info)
+        .await?
+        .ok_or(anyhow!("Parent of ephemeral not found"))?;
+
+    // Now, the conditions on the spend of the direct parent should enable us to find the other parent of the ephemeral coin
+    // linked by CREATE_COIN_ANNOUNCEMENT/ASSERT_COIN_ANNOUNCEMENT
+    let conditions = conditions_for_coin(client, &direct_parent).await?;
+
+    // Now, we need to find the CREATE_COIN_ANNOUNCEMENT
+    let create_coin_announcements = conditions
+        .into_iter()
+        .filter_map(Condition::into_create_coin_announcement);
+
+    let mut input_coins: Vec<CoinRecord> = vec![];
+
+    for announcement in create_coin_announcements {
+        let mut hasher = Sha256::new();
+        hasher.update(eph_coin.coin.parent_coin_info);
+        hasher.update(&announcement.message);
+        let message = hasher.finalize().to_vec();
+
+        // now we have to find coins with ASSERT_COIN_ANNOUNCEMENT of `message`
+        // Get all the coin creations in the block, and find the matching assert
+        let block = client
+            .get_block_record_by_height(eph_coin.confirmed_block_index)
+            .await?;
+        let (_additions, removals) = client
+            .get_additions_and_removals(&block.header_hash)
+            .await?;
+        for removal in removals {
+            let conditions = conditions_for_coin(client, &removal).await?;
+            let assert_coin_announcements = conditions
+                .into_iter()
+                .filter_map(Condition::into_assert_coin_announcement);
+            for assert_coin_announcement in assert_coin_announcements {
+                if assert_coin_announcement.announcement_id[..] == message {
+                    input_coins.push(removal.clone());
+                }
+            }
+        }
+    }
+
+    if input_coins.len() != 1 {
+        anyhow::bail!("Unexpected number of input coins found");
+    }
+
+    // At this point, we found the parent of the NFT that directly leads back to the metadata (without tracing asserts)
+    input_coins.pop().ok_or(anyhow!("Missing input coin"))
 }
 
 async fn advance_parent(client: &FullnodeClient, coin: &CoinRecord) -> Result<CoinRecord> {
